@@ -1,22 +1,22 @@
-package game;
+package Game;
 import city.cs.engine.*;
 import city.cs.engine.Shape;
 import org.jbox2d.common.Vec2;
-
 import javax.swing.*;
+import java.awt.event.*;
 
 public class Game extends World{
     private UserView view;
     private final JFrame frame = new JFrame("City Game");
-    private DynamicBody player;
-    private Vec2 playerOrigin;
+    private final DynamicBody player;
+    EDynamicBody playerInfo;
 
     public Game() {
         super();
 
         Shape shape = new BoxShape(11, 0.5f);
         StaticBody ground = new StaticBody(this, shape);
-        ground.setPosition(new Vec2(0f, 0));
+        ground.setPosition(new Vec2(0f, -0.5f));
         ground.setName("Ground");
 
 
@@ -24,12 +24,15 @@ public class Game extends World{
         StaticBody platform1 = new StaticBody(this, platformShape);
         platform1.setPosition(new Vec2(-8, -5f));
 
-        playerOrigin = new Vec2(7, 2.5f);
         Shape studentShape = new BoxShape(1,2);
         player = new DynamicBody(this, studentShape);
-        player.setPosition(playerOrigin);
+        playerInfo = new EDynamicBody(player, new Vec2(1, 2), new Vec2(0f, 2f));
+        player.setPosition(playerInfo.getPlayerOrigin());
         player.setFillColor(java.awt.Color.orange);
 
+
+        Person person = new Person(this);
+        person.setPosition(new Vec2(4,2));
        // Function calls
         this.createView();
         this.jFrameOperations();
@@ -49,14 +52,26 @@ public class Game extends World{
             }
         });
 
+        view.addMouseListener(new MouseAdapter() {
+           @Override
+           public void mousePressed(MouseEvent e) {
+               if (checkPoint(player, playerInfo, view.viewToWorld(e.getPoint()))) {
+                   player.setFillColor(java.awt.Color.green);
+               }
+               else if (player.getFillColor() == java.awt.Color.green) {
+                   player.setFillColor(java.awt.Color.orange);
+               }
+           }
+        });
+
         player.setAlwaysOutline(true);
         this.start();
         this.addViewListener();
     }
 
     protected void addViewListener() {
-        InputKeyListener listener = new InputKeyListener(this);
         view.addKeyListener(new InputKeyListener(this));
+        view.setFocusable(true);
     }
 
     private void jFrameOperations() {
@@ -80,54 +95,44 @@ public class Game extends World{
 
 
     private void jump(DynamicBody body) {
-        body.setLinearVelocity(body.getLinearVelocity().add(new Vec2(0, 10)));
+        body.setLinearVelocity(body.getLinearVelocity().add(new Vec2(body.getLinearVelocity().x, 10)));
     }
     protected void moveBody(DynamicBody body, String direction) {
-        if (direction.equals("LEFT")) {
-            if (body.getLinearVelocity().x < -5) {
-                body.setLinearVelocity(new Vec2(-10, body.getLinearVelocity().y));
+        switch (direction) {
+            case "LEFT" -> body.setLinearVelocity(new Vec2(-10, body.getLinearVelocity().y));
+            case "RIGHT" -> body.setLinearVelocity(new Vec2(10, body.getLinearVelocity().y));
+            case "UP" -> {
+                if (!body.getBodiesInContact().isEmpty()) {
+                    if (body.getLinearVelocity().y > 10) {
+                        body.setLinearVelocity(new Vec2(body.getLinearVelocity().x, 20));
+                    } else {
+                        this.jump(body);
+                    }
+                }
             }
-            else {
-                body.setLinearVelocity(body.getLinearVelocity().add(new Vec2(-5, 0)));
-            }
-        }
-        else if (direction.equals("RIGHT")) {
-            if (body.getLinearVelocity().x > 5) {
-                body.setLinearVelocity(new Vec2(10, body.getLinearVelocity().y));
-            }
-            else {
-                body.setLinearVelocity(body.getLinearVelocity().add(new Vec2(5, 0)));
-            }
-        }
-        else if (direction.equals("UP")) {
-            if (!body.getBodiesInContact().isEmpty()) {
-                if (body.getLinearVelocity().y > 10) {
-                    body.setLinearVelocity(new Vec2(body.getLinearVelocity().x, 20));
+            case "DOWN" -> {
+                if (body.getLinearVelocity().y < -10) {
+                    body.setLinearVelocity(new Vec2(body.getLinearVelocity().x, -20));
                 } else {
-                    this.jump(body);
+                    body.setLinearVelocity(body.getLinearVelocity().add(new Vec2(0, -10)));
                 }
             }
         }
-        else if (direction.equals("DOWN")) {
-            if (body.getLinearVelocity().y < -10) {
-                body.setLinearVelocity(new Vec2(body.getLinearVelocity().x, -20));
-            }
-            else {
-                body.setLinearVelocity(body.getLinearVelocity().add(new Vec2(0, -10)));
-            }
-        }
-        System.out.println(body.getLinearVelocity().x + " " + body.getLinearVelocity().y);
-    }
-
-    protected void focusView() {
-        Vec2 position = player.getPosition();
     }
 
     protected void resetPosition(DynamicBody body) {
         body.setLinearVelocity(new Vec2(0, 0));
-        body.setPosition(playerOrigin);
+        body.setPosition(playerInfo.getPlayerOrigin());
         body.setAngularVelocity(0);
         body.setAngle(0);
     }
+    private static boolean checkPoint(DynamicBody body, EDynamicBody bodyInfo, Vec2 point) {
+        Vec2 position = body.getPosition();
+        float left = position.x - bodyInfo.getShapeParams().x;
+        float right = position.x + bodyInfo.getShapeParams().x;
+        float top = position.y + bodyInfo.getShapeParams().y;
+        float bottom = position.y - bodyInfo.getShapeParams().y;
 
+        return (point.x >= left && point.x <= right && point.y <= top && point.y >= bottom);
+    }
 }

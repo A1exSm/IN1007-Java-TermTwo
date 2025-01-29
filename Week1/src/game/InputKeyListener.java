@@ -1,4 +1,4 @@
-package game;
+package Game;
 import org.jbox2d.common.Vec2;
 
 import java.awt.event.KeyEvent;
@@ -45,9 +45,6 @@ public class InputKeyListener implements KeyListener {
 //        if (key == KeyEvent.VK_W || key == KeyEvent.VK_SPACE || key == KeyEvent.VK_S) {
 //            game.getPlayer().setLinearVelocity(new Vec2(game.getPlayer().getLinearVelocity().x,0));
 //        }
-        if (key == KeyEvent.VK_1) {
-        // empty
-        }
         if (key == KeyEvent.VK_LEFT || key == KeyEvent.VK_RIGHT) {
             game.getPlayer().setAngularVelocity(0);
         }
